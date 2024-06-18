@@ -1,0 +1,1034 @@
+# PIPELINE DEFINITION
+# Name: llm-pruning-pipeline
+# Description: A Pipeline for pruning LLMs with SparseML
+# Inputs:
+#    accuracy: int [Default: 90.0]
+#    eval: bool [Default: False]
+#    eval_batch_size: str [Default: '64']
+#    eval_task: str [Default: 'hellaswag']
+#    model_name: str [Default: 'TinyLlama/TinyLlama-1.1B-Chat-v1.0']
+#    sparse: bool [Default: True]
+components:
+  comp-condition-1:
+    dag:
+      tasks:
+        condition-2:
+          componentRef:
+            name: comp-condition-2
+          dependentTasks:
+          - sparse-model
+          inputs:
+            parameters:
+              pipelinechannel--eval:
+                componentInputParameter: pipelinechannel--eval
+              pipelinechannel--eval_batch_size:
+                componentInputParameter: pipelinechannel--eval_batch_size
+              pipelinechannel--eval_task:
+                componentInputParameter: pipelinechannel--eval_task
+              pipelinechannel--sparse:
+                componentInputParameter: pipelinechannel--sparse
+          taskInfo:
+            name: eval=True
+          triggerPolicy:
+            condition: inputs.parameter_values['pipelinechannel--eval'] == true
+        condition-3:
+          componentRef:
+            name: comp-condition-3
+          dependentTasks:
+          - sparse-model
+          inputs:
+            parameters:
+              pipelinechannel--eval:
+                componentInputParameter: pipelinechannel--eval
+              pipelinechannel--sparse:
+                componentInputParameter: pipelinechannel--sparse
+          taskInfo:
+            name: eval=False
+          triggerPolicy:
+            condition: inputs.parameter_values['pipelinechannel--eval'] == false
+        sparse-model:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-sparse-model
+          inputs:
+            parameters:
+              compress_model_path:
+                runtimeValue:
+                  constant: /mnt/models/sparse-llm
+              ds:
+                runtimeValue:
+                  constant: garage-bAInd/Open-Platypus
+              model_path:
+                runtimeValue:
+                  constant: /mnt/models/llm
+              precision:
+                runtimeValue:
+                  constant: bfloat16
+          taskInfo:
+            name: sparse-model
+    inputDefinitions:
+      parameters:
+        pipelinechannel--eval:
+          parameterType: BOOLEAN
+        pipelinechannel--eval_batch_size:
+          parameterType: STRING
+        pipelinechannel--eval_task:
+          parameterType: STRING
+        pipelinechannel--sparse:
+          parameterType: BOOLEAN
+  comp-condition-2:
+    dag:
+      tasks:
+        eval-model:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-eval-model
+          inputs:
+            parameters:
+              batch_size:
+                componentInputParameter: pipelinechannel--eval_batch_size
+              model_path:
+                runtimeValue:
+                  constant: /mnt/models/sparse-llm
+              tasks:
+                componentInputParameter: pipelinechannel--eval_task
+          taskInfo:
+            name: eval-model
+        eval-model-2:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-eval-model-2
+          inputs:
+            parameters:
+              batch_size:
+                componentInputParameter: pipelinechannel--eval_batch_size
+              model_path:
+                runtimeValue:
+                  constant: /mnt/models/llm
+              tasks:
+                componentInputParameter: pipelinechannel--eval_task
+          taskInfo:
+            name: eval-model-2
+        export-model:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-export-model
+          dependentTasks:
+          - eval-model
+          inputs:
+            parameters:
+              exported_model_path:
+                runtimeValue:
+                  constant: /mnt/models/exported
+              model_path:
+                runtimeValue:
+                  constant: /mnt/models/sparse-llm
+          taskInfo:
+            name: export-model
+        upload-pruned-model:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-upload-pruned-model
+          dependentTasks:
+          - export-model
+          inputs:
+            parameters:
+              model_path:
+                runtimeValue:
+                  constant: /mnt/models/exported
+          taskInfo:
+            name: upload-pruned-model
+    inputDefinitions:
+      parameters:
+        pipelinechannel--eval:
+          parameterType: BOOLEAN
+        pipelinechannel--eval_batch_size:
+          parameterType: STRING
+        pipelinechannel--eval_task:
+          parameterType: STRING
+        pipelinechannel--sparse:
+          parameterType: BOOLEAN
+  comp-condition-3:
+    dag:
+      tasks:
+        export-model-2:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-export-model-2
+          inputs:
+            parameters:
+              exported_model_path:
+                runtimeValue:
+                  constant: /mnt/models/exported
+              model_path:
+                runtimeValue:
+                  constant: /mnt/models/sparse-llm
+          taskInfo:
+            name: export-model-2
+        upload-pruned-model-2:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-upload-pruned-model-2
+          dependentTasks:
+          - export-model-2
+          inputs:
+            parameters:
+              model_path:
+                runtimeValue:
+                  constant: /mnt/models/exported
+          taskInfo:
+            name: upload-pruned-model-2
+    inputDefinitions:
+      parameters:
+        pipelinechannel--eval:
+          parameterType: BOOLEAN
+        pipelinechannel--sparse:
+          parameterType: BOOLEAN
+  comp-condition-4:
+    dag:
+      tasks:
+        condition-5:
+          componentRef:
+            name: comp-condition-5
+          inputs:
+            parameters:
+              pipelinechannel--eval:
+                componentInputParameter: pipelinechannel--eval
+              pipelinechannel--eval_batch_size:
+                componentInputParameter: pipelinechannel--eval_batch_size
+              pipelinechannel--eval_task:
+                componentInputParameter: pipelinechannel--eval_task
+              pipelinechannel--sparse:
+                componentInputParameter: pipelinechannel--sparse
+          taskInfo:
+            name: eval=True
+          triggerPolicy:
+            condition: inputs.parameter_values['pipelinechannel--eval'] == true
+        export-model-3:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-export-model-3
+          inputs:
+            parameters:
+              exported_model_path:
+                runtimeValue:
+                  constant: /mnt/models/exported
+              model_path:
+                runtimeValue:
+                  constant: /mnt/models/llm
+          taskInfo:
+            name: export-model-3
+        upload-pruned-model-3:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-upload-pruned-model-3
+          dependentTasks:
+          - export-model-3
+          inputs:
+            parameters:
+              model_path:
+                runtimeValue:
+                  constant: /mnt/models/exported
+          taskInfo:
+            name: upload-pruned-model-3
+    inputDefinitions:
+      parameters:
+        pipelinechannel--eval:
+          parameterType: BOOLEAN
+        pipelinechannel--eval_batch_size:
+          parameterType: STRING
+        pipelinechannel--eval_task:
+          parameterType: STRING
+        pipelinechannel--sparse:
+          parameterType: BOOLEAN
+  comp-condition-5:
+    dag:
+      tasks:
+        eval-model-3:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-eval-model-3
+          inputs:
+            parameters:
+              batch_size:
+                componentInputParameter: pipelinechannel--eval_batch_size
+              model_path:
+                runtimeValue:
+                  constant: /mnt/models/llm
+              tasks:
+                componentInputParameter: pipelinechannel--eval_task
+          taskInfo:
+            name: eval-model-3
+    inputDefinitions:
+      parameters:
+        pipelinechannel--eval:
+          parameterType: BOOLEAN
+        pipelinechannel--eval_batch_size:
+          parameterType: STRING
+        pipelinechannel--eval_task:
+          parameterType: STRING
+        pipelinechannel--sparse:
+          parameterType: BOOLEAN
+  comp-download-model:
+    executorLabel: exec-download-model
+    inputDefinitions:
+      parameters:
+        destination_path:
+          parameterType: STRING
+        model_name:
+          parameterType: STRING
+  comp-eval-model:
+    executorLabel: exec-eval-model
+    inputDefinitions:
+      parameters:
+        batch_size:
+          parameterType: STRING
+        model_path:
+          parameterType: STRING
+        tasks:
+          parameterType: STRING
+  comp-eval-model-2:
+    executorLabel: exec-eval-model-2
+    inputDefinitions:
+      parameters:
+        batch_size:
+          parameterType: STRING
+        model_path:
+          parameterType: STRING
+        tasks:
+          parameterType: STRING
+  comp-eval-model-3:
+    executorLabel: exec-eval-model-3
+    inputDefinitions:
+      parameters:
+        batch_size:
+          parameterType: STRING
+        model_path:
+          parameterType: STRING
+        tasks:
+          parameterType: STRING
+  comp-export-model:
+    executorLabel: exec-export-model
+    inputDefinitions:
+      parameters:
+        exported_model_path:
+          parameterType: STRING
+        model_path:
+          parameterType: STRING
+  comp-export-model-2:
+    executorLabel: exec-export-model-2
+    inputDefinitions:
+      parameters:
+        exported_model_path:
+          parameterType: STRING
+        model_path:
+          parameterType: STRING
+  comp-export-model-3:
+    executorLabel: exec-export-model-3
+    inputDefinitions:
+      parameters:
+        exported_model_path:
+          parameterType: STRING
+        model_path:
+          parameterType: STRING
+  comp-sparse-model:
+    executorLabel: exec-sparse-model
+    inputDefinitions:
+      parameters:
+        compress_model_path:
+          parameterType: STRING
+        ds:
+          parameterType: STRING
+        model_path:
+          parameterType: STRING
+        precision:
+          parameterType: STRING
+  comp-upload-pruned-model:
+    executorLabel: exec-upload-pruned-model
+    inputDefinitions:
+      parameters:
+        model_path:
+          parameterType: STRING
+  comp-upload-pruned-model-2:
+    executorLabel: exec-upload-pruned-model-2
+    inputDefinitions:
+      parameters:
+        model_path:
+          parameterType: STRING
+  comp-upload-pruned-model-3:
+    executorLabel: exec-upload-pruned-model-3
+    inputDefinitions:
+      parameters:
+        model_path:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-download-model:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - download_model
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.8.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"'  &&\
+          \  python3 -m pip install --quiet --no-warn-script-location 'huggingface-hub'\
+          \ && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef download_model(model_name: str, destination_path: str):\n   \
+          \ import subprocess\n\n    # Execute the huggingface_hub-cli command\n \
+          \   result = subprocess.run([\"huggingface-cli\", \"download\", model_name,\n\
+          \                             \"--local-dir\", destination_path,\n     \
+          \                        \"--local-dir-use-symlinks\", \"False\"], capture_output=True,\
+          \ text=True)\n\n    # Check for errors or output\n    if result.returncode\
+          \ == 0:\n        print(\"Model downloaded successfully.\")\n    else:\n\
+          \        print(\"Error downloading model:\")\n        print(result.stderr)\n\
+          \n"
+        image: registry.access.redhat.com/ubi9/python-311
+    exec-eval-model:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - eval_model
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.8.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"'  &&\
+          \  python3 -m pip install --quiet --no-warn-script-location 'datasets' &&\
+          \ \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef eval_model(model_path: str, tasks: str, batch_size: str):\n \
+          \   import subprocess\n    import os\n\n    model_args = \"pretrained=\"\
+          \ + model_path  # + \",trust_remote_code=True\"\n\n    # Execute the huggingface_hub-cli\
+          \ command\n    env = os.environ.copy()\n    env[\"CUDA_VISIBLE_DEVICES\"\
+          ] = \"0\"\n    result = subprocess.run([\"python\", \"./lm-evaluation-harness/main.py\"\
+          ,\n                             \"--model\", \"sparseml\",\n           \
+          \                  \"--model_args\", model_args,\n                     \
+          \        \"--tasks\", tasks,\n                             \"--batch_size\"\
+          , batch_size,\n                             \"--no_cache\",\n          \
+          \                   \"--write_out\",\n                             \"--device\"\
+          , \"cuda:0\",\n                             \"--num_fewshot\", \"0\",\n\
+          \                             \"--limit\", \"1000\"],\n                \
+          \            capture_output=True, text=True, env=env)\n\n    # Check for\
+          \ errors or output\n    if result.returncode == 0:\n        print(\"Model\
+          \ evaluated successfully:\")\n        print(result.stdout)\n    else:\n\
+          \        print(\"Error evaluating the model:\")\n        print(result.stderr)\n\
+          \n"
+        image: quay.io/ltomasbo/sparseml:eval2
+        resources:
+          accelerator:
+            count: '1'
+            type: nvidia.com/gpu
+    exec-eval-model-2:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - eval_model
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.8.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"'  &&\
+          \  python3 -m pip install --quiet --no-warn-script-location 'datasets' &&\
+          \ \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef eval_model(model_path: str, tasks: str, batch_size: str):\n \
+          \   import subprocess\n    import os\n\n    model_args = \"pretrained=\"\
+          \ + model_path  # + \",trust_remote_code=True\"\n\n    # Execute the huggingface_hub-cli\
+          \ command\n    env = os.environ.copy()\n    env[\"CUDA_VISIBLE_DEVICES\"\
+          ] = \"0\"\n    result = subprocess.run([\"python\", \"./lm-evaluation-harness/main.py\"\
+          ,\n                             \"--model\", \"sparseml\",\n           \
+          \                  \"--model_args\", model_args,\n                     \
+          \        \"--tasks\", tasks,\n                             \"--batch_size\"\
+          , batch_size,\n                             \"--no_cache\",\n          \
+          \                   \"--write_out\",\n                             \"--device\"\
+          , \"cuda:0\",\n                             \"--num_fewshot\", \"0\",\n\
+          \                             \"--limit\", \"1000\"],\n                \
+          \            capture_output=True, text=True, env=env)\n\n    # Check for\
+          \ errors or output\n    if result.returncode == 0:\n        print(\"Model\
+          \ evaluated successfully:\")\n        print(result.stdout)\n    else:\n\
+          \        print(\"Error evaluating the model:\")\n        print(result.stderr)\n\
+          \n"
+        image: quay.io/ltomasbo/sparseml:eval2
+        resources:
+          accelerator:
+            count: '1'
+            type: nvidia.com/gpu
+    exec-eval-model-3:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - eval_model
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.8.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"'  &&\
+          \  python3 -m pip install --quiet --no-warn-script-location 'datasets' &&\
+          \ \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef eval_model(model_path: str, tasks: str, batch_size: str):\n \
+          \   import subprocess\n    import os\n\n    model_args = \"pretrained=\"\
+          \ + model_path  # + \",trust_remote_code=True\"\n\n    # Execute the huggingface_hub-cli\
+          \ command\n    env = os.environ.copy()\n    env[\"CUDA_VISIBLE_DEVICES\"\
+          ] = \"0\"\n    result = subprocess.run([\"python\", \"./lm-evaluation-harness/main.py\"\
+          ,\n                             \"--model\", \"sparseml\",\n           \
+          \                  \"--model_args\", model_args,\n                     \
+          \        \"--tasks\", tasks,\n                             \"--batch_size\"\
+          , batch_size,\n                             \"--no_cache\",\n          \
+          \                   \"--write_out\",\n                             \"--device\"\
+          , \"cuda:0\",\n                             \"--num_fewshot\", \"0\",\n\
+          \                             \"--limit\", \"1000\"],\n                \
+          \            capture_output=True, text=True, env=env)\n\n    # Check for\
+          \ errors or output\n    if result.returncode == 0:\n        print(\"Model\
+          \ evaluated successfully:\")\n        print(result.stdout)\n    else:\n\
+          \        print(\"Error evaluating the model:\")\n        print(result.stderr)\n\
+          \n"
+        image: quay.io/ltomasbo/sparseml:eval2
+        resources:
+          accelerator:
+            count: '1'
+            type: nvidia.com/gpu
+    exec-export-model:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - export_model
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.8.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef export_model(model_path: str, exported_model_path: str):\n  \
+          \  from sparseml import export\n\n    export(\n        model_path,\n   \
+          \     task=\"text-generation\",\n        sequence_length=1024,\n       \
+          \ target_path=exported_model_path\n    )\n\n"
+        image: quay.io/ltomasbo/sparseml
+    exec-export-model-2:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - export_model
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.8.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef export_model(model_path: str, exported_model_path: str):\n  \
+          \  from sparseml import export\n\n    export(\n        model_path,\n   \
+          \     task=\"text-generation\",\n        sequence_length=1024,\n       \
+          \ target_path=exported_model_path\n    )\n\n"
+        image: quay.io/ltomasbo/sparseml
+    exec-export-model-3:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - export_model
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.8.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef export_model(model_path: str, exported_model_path: str):\n  \
+          \  from sparseml import export\n\n    export(\n        model_path,\n   \
+          \     task=\"text-generation\",\n        sequence_length=1024,\n       \
+          \ target_path=exported_model_path\n    )\n\n"
+        image: quay.io/ltomasbo/sparseml
+    exec-sparse-model:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - sparse_model
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.8.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"'  &&\
+          \  python3 -m pip install --quiet --no-warn-script-location 'datasets' &&\
+          \ \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef sparse_model(model_path: str, compress_model_path: str, ds: str,\
+          \ precision: str):\n    from sparseml.transformers import (\n        SparseAutoModelForCausalLM,\
+          \ SparseAutoTokenizer, load_dataset, oneshot\n    )\n\n    model = SparseAutoModelForCausalLM.from_pretrained(\n\
+          \        model_path, device_map=\"auto\")\n\n    tokenizer = SparseAutoTokenizer.from_pretrained(model_path)\n\
+          \    # tokenizer = SparseAutoTokenizer.from_pretrained(model_path).to(model.device)\n\
+          \n    dataset = load_dataset(ds)\n\n    def format_data(data):\n       \
+          \ return {\n            \"text\": data[\"instruction\"] + data[\"output\"\
+          ]\n        }\n\n    dataset = dataset.map(format_data)\n\n    recipe = \"\
+          \"\"\n    test_stage:\n      obcq_modifiers:\n        LogarithmicEqualizationModifier:\n\
+          \          mappings: [\n            [[\"re:.*q_proj\", \"re:.*k_proj\",\
+          \ \"re:.*v_proj\"], \"re:.*input_layernorm\"],\n            [[\"re:.*gate_proj\"\
+          , \"re:.*up_proj\"], \"re:.*post_attention_layernorm\"],\n          ]\n\
+          \        QuantizationModifier:\n          ignore:\n            # These operations\
+          \ don't make sense to quantize\n            - LlamaRotaryEmbedding\n   \
+          \         - LlamaRMSNorm\n            - SiLUActivation\n            - MatMulOutput_QK\n\
+          \            - MatMulOutput_PV\n            # Skip quantizing the layers\
+          \ with the most sensitive activations\n            - model.layers.21.mlp.down_proj\n\
+          \            - model.layers.7.mlp.down_proj\n            - model.layers.2.mlp.down_proj\n\
+          \            - model.layers.8.self_attn.q_proj\n            - model.layers.8.self_attn.k_proj\n\
+          \          post_oneshot_calibration: true\n          scheme_overrides:\n\
+          \            # Enable channelwise quantization for better accuracy\n   \
+          \         Linear:\n              weights:\n                num_bits: 8\n\
+          \                symmetric: true\n                strategy: channel\n  \
+          \          MatMulLeftInput_QK:\n              input_activations:\n     \
+          \           num_bits: 8\n                symmetric: true\n            #\
+          \ For the embeddings, only weight-quantization makes sense\n           \
+          \ Embedding:\n              input_activations: null\n              weights:\n\
+          \                num_bits: 8\n                symmetric: false\n       \
+          \ SparseGPTModifier:\n          sparsity: 0.5\n          block_size: 128\n\
+          \          sequential_update: false\n          quantize: true\n        \
+          \  percdamp: 0.01\n          mask_structure: \"0:0\"\n          targets:\
+          \ [\"re:model.layers.\\\\\\d*$\"]\n    \"\"\"\n\n    oneshot(\n        model=model,\n\
+          \        tokenizer=tokenizer,\n        dataset=dataset,\n        recipe=recipe,\n\
+          \        output_dir=compress_model_path,\n    )\n\n"
+        image: quay.io/ltomasbo/sparseml
+        resources:
+          accelerator:
+            count: '1'
+            type: nvidia.com/gpu
+    exec-upload-pruned-model:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - upload_pruned_model
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.8.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"'  &&\
+          \  python3 -m pip install --quiet --no-warn-script-location 'boto3' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef upload_pruned_model(model_path: str):\n    import os\n    from\
+          \ boto3 import client\n\n    print('Commencing results upload.')\n    print(os.environ)\n\
+          \n    s3_endpoint_url = os.environ[\"s3_host\"]\n    s3_access_key = os.environ[\"\
+          s3_access_key\"]\n    s3_secret_key = os.environ[\"s3_secret_access_key\"\
+          ]\n    s3_bucket_name = os.environ[\"s3_bucket\"]\n\n    print(f'Uploading\
+          \ predictions to bucket {s3_bucket_name} '\n          f'to S3 storage at\
+          \ {s3_endpoint_url}')\n\n    s3_client = client(\n        's3', endpoint_url=s3_endpoint_url,\n\
+          \        aws_access_key_id=s3_access_key, aws_secret_access_key=s3_secret_key,\
+          \ verify=False\n    )\n\n    # Walk through the local folder and upload\
+          \ files\n    for root, dirs, files in os.walk(model_path):\n        for\
+          \ file in files:\n            local_file_path = os.path.join(root, file)\n\
+          \            s3_file_path = os.path.join(\n                s3_bucket_name,\
+          \ local_file_path[len(model_path)+1:])\n            s3_client.upload_file(\n\
+          \                local_file_path, s3_bucket_name, s3_file_path)\n      \
+          \      print(f'Uploaded {local_file_path}')\n\n    print('Finished uploading\
+          \ results.')\n\n"
+        image: registry.access.redhat.com/ubi9/python-311
+    exec-upload-pruned-model-2:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - upload_pruned_model
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.8.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"'  &&\
+          \  python3 -m pip install --quiet --no-warn-script-location 'boto3' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef upload_pruned_model(model_path: str):\n    import os\n    from\
+          \ boto3 import client\n\n    print('Commencing results upload.')\n    print(os.environ)\n\
+          \n    s3_endpoint_url = os.environ[\"s3_host\"]\n    s3_access_key = os.environ[\"\
+          s3_access_key\"]\n    s3_secret_key = os.environ[\"s3_secret_access_key\"\
+          ]\n    s3_bucket_name = os.environ[\"s3_bucket\"]\n\n    print(f'Uploading\
+          \ predictions to bucket {s3_bucket_name} '\n          f'to S3 storage at\
+          \ {s3_endpoint_url}')\n\n    s3_client = client(\n        's3', endpoint_url=s3_endpoint_url,\n\
+          \        aws_access_key_id=s3_access_key, aws_secret_access_key=s3_secret_key,\
+          \ verify=False\n    )\n\n    # Walk through the local folder and upload\
+          \ files\n    for root, dirs, files in os.walk(model_path):\n        for\
+          \ file in files:\n            local_file_path = os.path.join(root, file)\n\
+          \            s3_file_path = os.path.join(\n                s3_bucket_name,\
+          \ local_file_path[len(model_path)+1:])\n            s3_client.upload_file(\n\
+          \                local_file_path, s3_bucket_name, s3_file_path)\n      \
+          \      print(f'Uploaded {local_file_path}')\n\n    print('Finished uploading\
+          \ results.')\n\n"
+        image: registry.access.redhat.com/ubi9/python-311
+    exec-upload-pruned-model-3:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - upload_pruned_model
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.8.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"'  &&\
+          \  python3 -m pip install --quiet --no-warn-script-location 'boto3' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef upload_pruned_model(model_path: str):\n    import os\n    from\
+          \ boto3 import client\n\n    print('Commencing results upload.')\n    print(os.environ)\n\
+          \n    s3_endpoint_url = os.environ[\"s3_host\"]\n    s3_access_key = os.environ[\"\
+          s3_access_key\"]\n    s3_secret_key = os.environ[\"s3_secret_access_key\"\
+          ]\n    s3_bucket_name = os.environ[\"s3_bucket\"]\n\n    print(f'Uploading\
+          \ predictions to bucket {s3_bucket_name} '\n          f'to S3 storage at\
+          \ {s3_endpoint_url}')\n\n    s3_client = client(\n        's3', endpoint_url=s3_endpoint_url,\n\
+          \        aws_access_key_id=s3_access_key, aws_secret_access_key=s3_secret_key,\
+          \ verify=False\n    )\n\n    # Walk through the local folder and upload\
+          \ files\n    for root, dirs, files in os.walk(model_path):\n        for\
+          \ file in files:\n            local_file_path = os.path.join(root, file)\n\
+          \            s3_file_path = os.path.join(\n                s3_bucket_name,\
+          \ local_file_path[len(model_path)+1:])\n            s3_client.upload_file(\n\
+          \                local_file_path, s3_bucket_name, s3_file_path)\n      \
+          \      print(f'Uploaded {local_file_path}')\n\n    print('Finished uploading\
+          \ results.')\n\n"
+        image: registry.access.redhat.com/ubi9/python-311
+pipelineInfo:
+  description: A Pipeline for pruning LLMs with SparseML
+  name: llm-pruning-pipeline
+root:
+  dag:
+    tasks:
+      condition-1:
+        componentRef:
+          name: comp-condition-1
+        dependentTasks:
+        - download-model
+        inputs:
+          parameters:
+            pipelinechannel--eval:
+              componentInputParameter: eval
+            pipelinechannel--eval_batch_size:
+              componentInputParameter: eval_batch_size
+            pipelinechannel--eval_task:
+              componentInputParameter: eval_task
+            pipelinechannel--sparse:
+              componentInputParameter: sparse
+        taskInfo:
+          name: sparse=True
+        triggerPolicy:
+          condition: inputs.parameter_values['pipelinechannel--sparse'] == true
+      condition-4:
+        componentRef:
+          name: comp-condition-4
+        dependentTasks:
+        - download-model
+        inputs:
+          parameters:
+            pipelinechannel--eval:
+              componentInputParameter: eval
+            pipelinechannel--eval_batch_size:
+              componentInputParameter: eval_batch_size
+            pipelinechannel--eval_task:
+              componentInputParameter: eval_task
+            pipelinechannel--sparse:
+              componentInputParameter: sparse
+        taskInfo:
+          name: sparse=False
+        triggerPolicy:
+          condition: inputs.parameter_values['pipelinechannel--sparse'] == false
+      download-model:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-download-model
+        inputs:
+          parameters:
+            destination_path:
+              runtimeValue:
+                constant: /mnt/models/llm
+            model_name:
+              componentInputParameter: model_name
+        taskInfo:
+          name: download-model
+  inputDefinitions:
+    parameters:
+      accuracy:
+        defaultValue: 90.0
+        isOptional: true
+        parameterType: NUMBER_INTEGER
+      eval:
+        defaultValue: false
+        isOptional: true
+        parameterType: BOOLEAN
+      eval_batch_size:
+        defaultValue: '64'
+        isOptional: true
+        parameterType: STRING
+      eval_task:
+        defaultValue: hellaswag
+        isOptional: true
+        parameterType: STRING
+      model_name:
+        defaultValue: TinyLlama/TinyLlama-1.1B-Chat-v1.0
+        isOptional: true
+        parameterType: STRING
+      sparse:
+        defaultValue: true
+        isOptional: true
+        parameterType: BOOLEAN
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.8.0
+---
+platforms:
+  kubernetes:
+    deploymentSpec:
+      executors:
+        exec-download-model:
+          pvcMount:
+          - constant: models-shared
+            mountPath: /mnt/models/
+        exec-eval-model:
+          pvcMount:
+          - constant: models-shared
+            mountPath: /mnt/models/
+          tolerations:
+          - effect: NoSchedule
+            key: nvidia.com/gpu
+            operator: Exists
+        exec-eval-model-2:
+          pvcMount:
+          - constant: models-shared
+            mountPath: /mnt/models/
+          tolerations:
+          - effect: NoSchedule
+            key: nvidia.com/gpu
+            operator: Exists
+        exec-eval-model-3:
+          pvcMount:
+          - constant: models-shared
+            mountPath: /mnt/models/
+          tolerations:
+          - effect: NoSchedule
+            key: nvidia.com/gpu
+            operator: Exists
+        exec-export-model:
+          pvcMount:
+          - constant: models-shared
+            mountPath: /mnt/models/
+        exec-export-model-2:
+          pvcMount:
+          - constant: models-shared
+            mountPath: /mnt/models/
+        exec-export-model-3:
+          pvcMount:
+          - constant: models-shared
+            mountPath: /mnt/models/
+        exec-sparse-model:
+          pvcMount:
+          - constant: models-shared
+            mountPath: /mnt/models/
+          tolerations:
+          - effect: NoSchedule
+            key: nvidia.com/gpu
+            operator: Exists
+        exec-upload-pruned-model:
+          pvcMount:
+          - constant: models-shared
+            mountPath: /mnt/models/
+          secretAsEnv:
+          - keyToEnv:
+            - envVar: s3_access_key
+              secretKey: AWS_ACCESS_KEY_ID
+            - envVar: s3_secret_access_key
+              secretKey: AWS_SECRET_ACCESS_KEY
+            - envVar: s3_host
+              secretKey: AWS_S3_ENDPOINT
+            - envVar: s3_bucket
+              secretKey: AWS_S3_BUCKET
+            secretName: aws-connection-models
+        exec-upload-pruned-model-2:
+          pvcMount:
+          - constant: models-shared
+            mountPath: /mnt/models/
+          secretAsEnv:
+          - keyToEnv:
+            - envVar: s3_access_key
+              secretKey: AWS_ACCESS_KEY_ID
+            - envVar: s3_secret_access_key
+              secretKey: AWS_SECRET_ACCESS_KEY
+            - envVar: s3_host
+              secretKey: AWS_S3_ENDPOINT
+            - envVar: s3_bucket
+              secretKey: AWS_S3_BUCKET
+            secretName: aws-connection-models
+        exec-upload-pruned-model-3:
+          pvcMount:
+          - constant: models-shared
+            mountPath: /mnt/models/
+          secretAsEnv:
+          - keyToEnv:
+            - envVar: s3_access_key
+              secretKey: AWS_ACCESS_KEY_ID
+            - envVar: s3_secret_access_key
+              secretKey: AWS_SECRET_ACCESS_KEY
+            - envVar: s3_host
+              secretKey: AWS_S3_ENDPOINT
+            - envVar: s3_bucket
+              secretKey: AWS_S3_BUCKET
+            secretName: aws-connection-models

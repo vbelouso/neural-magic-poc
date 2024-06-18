@@ -308,4 +308,4 @@ def sparseml_pipeline(
         upload_pruned_llm.after(export_llm)
 
 # Compile the pipeline
-TektonCompiler().compile(sparseml_pipeline, 'sparseml_pipeline.yaml')
+TektonCompiler().compile(sparseml_pipeline, 'sparseml_pipeline_custom.yaml')
